@@ -1,15 +1,22 @@
 ---
 import { createClient } from '@supabase/supabase-js'
 
-// Initialize Supabase client using environment variables
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+// Use a try-catch block to handle potential missing environment variables
+let supabase;
+try {
+  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables')
+  }
+
+  supabase = createClient(supabaseUrl, supabaseAnonKey)
+} catch (error) {
+  console.error('Error initializing Supabase client:', error)
+  // Set supabase to null if initialization fails
+  supabase = null
 }
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
 ---
 
 <form id="myForm">
@@ -18,30 +25,45 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)
   <button type="submit">Submit</button>
 </form>
 
-<script define:vars={{ supabaseUrl, supabaseAnonKey }}>
-  // Initialize Supabase client in the client-side script
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+<script>
+  import { createClient } from '@supabase/supabase-js'
 
-  const form = document.getElementById('myForm');
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData(form);
-    const name = formData.get('name');
-    const email = formData.get('email');
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('myForm') as HTMLFormElement | null;
 
-    try {
-      const { data, error } = await supabase
-        .from('submissions')
-        .insert([{ name, email }]);
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const name = formData.get('name') as string;
+        const email = formData.get('email') as string;
 
-      if (error) throw error;
-      
-      alert('Form submitted successfully!');
-      form.reset();
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      alert('An error occurred while submitting the form.');
+        try {
+          const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+          const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+          if (!supabaseUrl || !supabaseAnonKey) {
+            throw new Error('Missing Supabase environment variables');
+          }
+
+          const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+          const { error } = await supabase
+            .from('submissions')
+            .insert([{ name, email }]);
+
+          if (error) throw error;
+          
+          alert('Form submitted successfully!');
+          form.reset();
+        } catch (error) {
+          console.error('Error submitting form:', error);
+          alert('An error occurred while submitting the form.');
+        }
+      });
+    } else {
+      console.error('Form element not found');
     }
   });
 </script>
