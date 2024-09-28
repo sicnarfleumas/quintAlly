@@ -1,0 +1,47 @@
+---
+import { createClient } from '@supabase/supabase-js'
+
+// Initialize Supabase client using environment variables
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables')
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
+---
+
+<form id="myForm">
+  <input type="text" name="name" placeholder="Name" required>
+  <input type="email" name="email" placeholder="Email" required>
+  <button type="submit">Submit</button>
+</form>
+
+<script define:vars={{ supabaseUrl, supabaseAnonKey }}>
+  // Initialize Supabase client in the client-side script
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+  const form = document.getElementById('myForm');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(form);
+    const name = formData.get('name');
+    const email = formData.get('email');
+
+    try {
+      const { data, error } = await supabase
+        .from('submissions')
+        .insert([{ name, email }]);
+
+      if (error) throw error;
+      
+      alert('Form submitted successfully!');
+      form.reset();
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      alert('An error occurred while submitting the form.');
+    }
+  });
+</script>
