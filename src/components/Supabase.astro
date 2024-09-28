@@ -1,69 +1,49 @@
 ---
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '../lib/supabase';
 
-// Use a try-catch block to handle potential missing environment variables
-let supabase;
-try {
-  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+let email = '';
+let message = '';
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase environment variables')
+if (Astro.request.method === 'POST') {
+  try {
+    const data = await Astro.request.formData();
+    const emailValue = data.get('email');
+
+    if (typeof emailValue !== 'string' || emailValue.trim() === '') {
+      throw new Error('Email is required');
+    }
+
+    email = emailValue.trim();
+
+    const { error } = await supabase
+      .from('newsletter_submissions')
+      .insert([{ email }]);
+    
+    if (error) throw error;
+    
+    message = 'Thank you for subscribing!';
+    email = '';
+  } catch (error) {
+    if (error instanceof Error) {
+      message = error.message;
+    } else {
+      message = 'An error occurred. Please try again.';
+    }
   }
-
-  supabase = createClient(supabaseUrl, supabaseAnonKey)
-} catch (error) {
-  console.error('Error initializing Supabase client:', error)
-  // Set supabase to null if initialization fails
-  supabase = null
 }
 ---
 
-<form id="myForm">
-  <input type="text" name="name" placeholder="Name" required>
-  <input type="email" name="email" placeholder="Email" required>
-  <button type="submit">Submit</button>
+<form method="POST" class="max-w-md mx-auto mt-8">
+  <input
+    type="email"
+    name="email"
+    value={email}
+    placeholder="Enter your email"
+    required
+    class="w-full px-3 py-2 border rounded-md"
+  />
+  <button type="submit" class="w-full mt-2 px-3 py-2 bg-blue-500 text-white rounded-md">
+    Subscribe
+  </button>
+  {message && <p class="mt-2 text-center">{message}</p>}
 </form>
-
-<script>
-  import { createClient } from '@supabase/supabase-js'
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('myForm') as HTMLFormElement | null;
-
-    if (form) {
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const formData = new FormData(form);
-        const name = formData.get('name') as string;
-        const email = formData.get('email') as string;
-
-        try {
-          const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-          const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-
-          if (!supabaseUrl || !supabaseAnonKey) {
-            throw new Error('Missing Supabase environment variables');
-          }
-
-          const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-          const { error } = await supabase
-            .from('submissions')
-            .insert([{ name, email }]);
-
-          if (error) throw error;
-          
-          alert('Form submitted successfully!');
-          form.reset();
-        } catch (error) {
-          console.error('Error submitting form:', error);
-          alert('An error occurred while submitting the form.');
-        }
-      });
-    } else {
-      console.error('Form element not found');
-    }
-  });
-</script>
